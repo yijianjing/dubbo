@@ -274,19 +274,35 @@ public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProc
     private void registerServiceBean(BeanDefinitionHolder beanDefinitionHolder, BeanDefinitionRegistry registry,
                                      DubboClassPathBeanDefinitionScanner scanner) {
 
+        /**
+         * 实现类
+         */
         Class<?> beanClass = resolveClass(beanDefinitionHolder);
 
+        /**
+         * DubboServer注解的信息
+         */
         Annotation service = findServiceAnnotation(beanClass);
 
         /**
          * The {@link AnnotationAttributes} of @Service annotation
+         * DubboServer注解的属性信息
          */
         AnnotationAttributes serviceAnnotationAttributes = getAnnotationAttributes(service, false, false);
 
+        /**
+         * 接口信息
+         */
         Class<?> interfaceClass = resolveServiceInterfaceClass(serviceAnnotationAttributes, beanClass);
 
+        /**
+         * 实现类名
+         */
         String annotatedServiceBeanName = beanDefinitionHolder.getBeanName();
 
+        /**
+         *
+         */
         AbstractBeanDefinition serviceBeanDefinition =
                 buildServiceBeanDefinition(service, serviceAnnotationAttributes, interfaceClass, annotatedServiceBeanName);
         /**
@@ -300,6 +316,7 @@ public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProc
         String beanName = generateServiceBeanName(serviceAnnotationAttributes, interfaceClass);
 
         if (scanner.checkCandidate(beanName, serviceBeanDefinition)) { // check duplicated candidate bean
+            //将serviceBeanDefinition放到Spring IOC容器
             registry.registerBeanDefinition(beanName, serviceBeanDefinition);
             if (!serviceBeanDefinition.getPropertyValues().contains("id")) {
                 serviceBeanDefinition.getPropertyValues().addPropertyValue("id", beanName);

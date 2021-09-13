@@ -38,7 +38,8 @@ public class Application {
         @Bean
         public RegistryConfig registryConfig() {
             RegistryConfig registryConfig = new RegistryConfig();
-            registryConfig.setAddress("zookeeper://127.0.0.1:2181");
+            registryConfig.setAddress("zookeeper://47.117.125.134:2181");
+            registryConfig.setTimeout(300000);
             return registryConfig;
         }
     }
