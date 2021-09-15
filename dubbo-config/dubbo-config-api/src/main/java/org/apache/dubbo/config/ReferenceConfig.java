@@ -230,6 +230,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
     }
 
     public synchronized void init() {
+        //如果已经初始化，则直接返回
         if (initialized) {
             return;
         }
@@ -243,22 +244,24 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             }
             bootstrap.initialize();
         }
-
+        //检查配置
         checkAndUpdateSubConfigs();
-
+        //检查本地存根 local与stub
         checkStubAndLocal(interfaceClass);
         ConfigValidationUtils.checkMock(interfaceClass, this);
 
         Map<String, String> map = new HashMap<String, String>();
         map.put(SIDE_KEY, CONSUMER_SIDE);
-
+        //添加运行时参数
         ReferenceConfigBase.appendRuntimeParameters(map);
+        //检查是否为泛化接口
         if (!ProtocolUtils.isGeneric(generic)) {
+            //获取版本信息
             String revision = Version.getVersion(interfaceClass, version);
             if (revision != null && revision.length() > 0) {
                 map.put(REVISION_KEY, revision);
             }
-
+            //获取接口方法列表，添加到map中
             String[] methods = Wrapper.getWrapper(interfaceClass).getMethodNames();
             if (methods.length == 0) {
                 logger.warn("No method found in service interface " + interfaceClass.getName());
@@ -267,6 +270,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                 map.put(METHODS_KEY, StringUtils.join(new HashSet<String>(Arrays.asList(methods)), COMMA_SEPARATOR));
             }
         }
+        //通过class加载配置信息
         map.put(INTERFACE_KEY, interfaceName);
         AbstractConfig.appendParameters(map, getMetrics());
         AbstractConfig.appendParameters(map, getApplication());
@@ -275,10 +279,12 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         // appendParameters(map, consumer, Constants.DEFAULT_KEY);
         AbstractConfig.appendParameters(map, consumer);
         AbstractConfig.appendParameters(map, this);
+        //将元数据配置信息放入到map中
         MetadataReportConfig metadataReportConfig = getMetadataReportConfig();
         if (metadataReportConfig != null && metadataReportConfig.isValid()) {
             map.putIfAbsent(METADATA_KEY, REMOTE_METADATA_STORAGE_TYPE);
         }
+        //遍历methodConfig，组装method参数信息
         Map<String, AsyncMethodInfo> attributes = null;
         if (CollectionUtils.isNotEmpty(getMethods())) {
             attributes = new HashMap<>();
@@ -298,7 +304,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                 }
             }
         }
-
+        //获取服务消费者ip地址
         String hostToRegistry = ConfigUtils.getSystemProperty(DUBBO_IP_TO_REGISTRY);
         if (StringUtils.isEmpty(hostToRegistry)) {
             hostToRegistry = NetUtils.getLocalHost();
@@ -353,10 +359,12 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                 }
             } else { // assemble URL from register center's configuration
                 // if protocols not injvm checkRegistry
+                //检查协议是否是injvm
                 if (!LOCAL_PROTOCOL.equalsIgnoreCase(getProtocol())) {
-                    checkRegistry();
+                    checkRegistry();//检查注册中心配置
+                    //获取注册中心列表，由于可以配置多个注册中心，所以这里返回所有配置的注册中心信息
                     List<URL> us = ConfigValidationUtils.loadRegistries(this, false);
-                    if (CollectionUtils.isNotEmpty(us)) {
+                    if (CollectionUtils.isNotEmpty(us)) {//遍历注册中心列表，添加到urls中
                         for (URL u : us) {
                             URL monitorUrl = ConfigValidationUtils.loadMonitor(this, u);
                             if (monitorUrl != null) {
@@ -373,10 +381,11 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                     }
                 }
             }
-
+            //如果urls=1，表示只配置了一个注册中心，则直接取一个。
             if (urls.size() == 1) {
                 invoker = REF_PROTOCOL.refer(interfaceClass, urls.get(0));
             } else {
+                //否则，它会把多个注册中心的协议都分别构建一个invoker
                 List<Invoker<?>> invokers = new ArrayList<Invoker<?>>();
                 URL registryURL = null;
                 for (URL url : urls) {
@@ -388,7 +397,9 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                         registryURL = url; // use last registry url
                     }
                 }
-
+                //如果registryURL不为空
+                //则通过CLUSTER.join把invokers以静态的Directory形式构建一个invoker对象。
+                //目的是实现注册中心的路由
                 if (registryURL != null) { // registry url is available
                     // for multi-subscription scenario, use 'zone-aware' policy by default
                     String cluster = registryURL.getParameter(CLUSTER_KEY, ZoneAwareCluster.NAME);
