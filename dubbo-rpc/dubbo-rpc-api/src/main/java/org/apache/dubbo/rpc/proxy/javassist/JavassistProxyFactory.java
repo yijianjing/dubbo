@@ -42,11 +42,11 @@ public class JavassistProxyFactory extends AbstractProxyFactory {
         return new AbstractProxyInvoker<T>(proxy, type, url) {
             @Override
             protected Object doInvoke(T proxy, String methodName,
-                                      Class<?>[] parameterTypes,
-                                      Object[] arguments) throws Throwable {
-                return wrapper.invokeMethod(proxy, methodName, parameterTypes, arguments);
-            }
-        };
+                Class<?>[] parameterTypes,
+                Object[] arguments) throws Throwable {
+            return wrapper.invokeMethod(proxy, methodName, parameterTypes, arguments);
+        }
+    };
     }
 
 }

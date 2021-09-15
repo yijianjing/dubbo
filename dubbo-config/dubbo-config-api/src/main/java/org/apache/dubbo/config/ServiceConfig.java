@@ -472,14 +472,15 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         }
 
         String scope = url.getParameter(SCOPE_KEY);
-        // don't export when none is configured
-        if (!SCOPE_NONE.equalsIgnoreCase(scope)) {
 
+        if (!SCOPE_NONE.equalsIgnoreCase(scope)) {
+            // 如果scope!=remote， 则先本地暴露服务
             // export to local if the config is not remote (export to remote only when config is remote)
             if (!SCOPE_REMOTE.equalsIgnoreCase(scope)) {
                 exportLocal(url);
             }
             // export to remote if the config is not local (export to local only when config is local)
+            // 暴露远程服务
             if (!SCOPE_LOCAL.equalsIgnoreCase(scope)) {
                 if (CollectionUtils.isNotEmpty(registryURLs)) {
                     for (URL registryURL : registryURLs) {
@@ -488,6 +489,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                         }
 
                         //if protocol is only injvm ,not register
+                        //如果设置的protocol是injvm，跳过
                         if (LOCAL_PROTOCOL.equalsIgnoreCase(url.getProtocol())) {
                             continue;
                         }
@@ -506,11 +508,12 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                         }
 
                         // For providers, this is used to enable custom proxy to generate invoker
+                        // 是否采用自定义的动态代理机制，默认是javassist
                         String proxy = url.getParameter(PROXY_KEY);
                         if (StringUtils.isNotEmpty(proxy)) {
                             registryURL = registryURL.addParameter(PROXY_KEY, proxy);
                         }
-
+                        //获得一个自适应扩展点，这个时候返回的Invoker是一个动态代理类。
                         Invoker<?> invoker = PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass,
                                 registryURL.addParameterAndEncoded(EXPORT_KEY, url.toFullString()));
                         DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
@@ -522,6 +525,9 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                     if (logger.isInfoEnabled()) {
                         logger.info("Export dubbo service " + interfaceClass.getName() + " to url " + url);
                     }
+
+                    //PROXY_FACTORY>ExtensionLoader.getExtensionLoader(ProxyFactory.class).getAdaptiveExtension();                
+                    //获得一个自适应扩展点，这个时候返回的Invoker是一个动态代理类。
                     Invoker<?> invoker = PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass, url);
                     DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
 
